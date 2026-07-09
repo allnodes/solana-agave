@@ -1506,7 +1506,7 @@ fn test_no_voting() {
             .rpc_client()
             .get_slot_with_commitment(CommitmentConfig::processed())
             .expect("Couldn't get slot");
-        if last_slot > 4 * VOTE_THRESHOLD_DEPTH as u64 {
+        if last_slot > 4 * *VOTE_THRESHOLD_DEPTH as u64 {
             break;
         }
         sleep(Duration::from_secs(1));
@@ -1516,7 +1516,7 @@ fn test_no_voting() {
     let leader_pubkey = *cluster.entry_point_info.pubkey();
     let ledger_path = cluster.validators[&leader_pubkey].info.ledger_path.clone();
     let ledger = Blockstore::open(&ledger_path).unwrap();
-    for i in 0..2 * VOTE_THRESHOLD_DEPTH {
+    for i in 0..2 * *VOTE_THRESHOLD_DEPTH {
         let meta = ledger.meta(i as u64).unwrap().unwrap();
         let parent = meta.parent_slot;
         let expected_parent = i.saturating_sub(1);
@@ -2756,7 +2756,7 @@ fn test_oc_bad_signatures() {
 fn test_votes_land_in_fork_during_long_partition() {
     let total_stake = 3 * DEFAULT_NODE_STAKE;
     // Make `lighter_stake` insufficient for switching threshold
-    let lighter_stake = (SWITCH_FORK_THRESHOLD * total_stake as f64) as u64;
+    let lighter_stake = (*SWITCH_FORK_THRESHOLD * total_stake as f64) as u64;
     let heavier_stake = lighter_stake + 1;
     let failures_stake = total_stake - lighter_stake - heavier_stake;
 
@@ -3359,7 +3359,7 @@ fn do_test_lockout_violation_with_or_without_tower(with_tower: bool) {
 
 fn test_fork_choice_refresh_old_votes() {
     agave_logger::setup_with_default(RUST_LOG_FILTER);
-    let max_switch_threshold_failure_pct = 1.0 - 2.0 * SWITCH_FORK_THRESHOLD;
+    let max_switch_threshold_failure_pct = 1.0 - 2.0 * *SWITCH_FORK_THRESHOLD;
     let total_stake = 100 * DEFAULT_NODE_STAKE;
     let max_failures_stake = (max_switch_threshold_failure_pct * total_stake as f64) as u64;
 
@@ -3678,7 +3678,7 @@ fn test_kill_heaviest_partition(is_alpenglow: bool) {
 #[test]
 #[serial]
 fn test_kill_partition_switch_threshold_no_progress() {
-    let max_switch_threshold_failure_pct = 1.0 - 2.0 * SWITCH_FORK_THRESHOLD;
+    let max_switch_threshold_failure_pct = 1.0 - 2.0 * *SWITCH_FORK_THRESHOLD;
     let total_stake = 10_000 * DEFAULT_NODE_STAKE;
     let max_failures_stake = (max_switch_threshold_failure_pct * total_stake as f64) as u64;
 
@@ -3714,7 +3714,7 @@ fn test_kill_partition_switch_threshold_no_progress() {
 #[test]
 #[serial]
 fn test_kill_partition_switch_threshold_progress() {
-    let max_switch_threshold_failure_pct = 1.0 - 2.0 * SWITCH_FORK_THRESHOLD;
+    let max_switch_threshold_failure_pct = 1.0 - 2.0 * *SWITCH_FORK_THRESHOLD;
     let total_stake = 10_000 * DEFAULT_NODE_STAKE;
 
     // Kill `< max_failures_stake` of the validators
@@ -3737,8 +3737,8 @@ fn test_kill_partition_switch_threshold_progress() {
     // 1) Not be able to generate a switching proof
     // 2) Other more staked fork stops voting, so doesn't catch up in bank weight.
     assert!(
-        bigger as f64 / total_stake as f64 > SWITCH_FORK_THRESHOLD
-            && smaller as f64 / total_stake as f64 <= SWITCH_FORK_THRESHOLD
+        bigger as f64 / total_stake as f64 > *SWITCH_FORK_THRESHOLD
+            && smaller as f64 / total_stake as f64 <= *SWITCH_FORK_THRESHOLD
     );
 
     let on_partition_start =
@@ -3823,13 +3823,13 @@ fn run_duplicate_shreds_broadcast_leader(vote_on_duplicate: bool) {
     let total_stake: u64 = node_stakes.iter().sum();
 
     assert!(
-        ((bad_leader_stake + good_node_stake) as f64 / total_stake as f64) < DUPLICATE_THRESHOLD
+        ((bad_leader_stake + good_node_stake) as f64 / total_stake as f64) < *DUPLICATE_THRESHOLD
     );
     assert!(
         (bad_leader_stake + good_node_stake + our_node_stake) as f64 / total_stake as f64
-            > DUPLICATE_THRESHOLD
+            > *DUPLICATE_THRESHOLD
     );
-    assert!((bad_leader_stake as f64 / total_stake as f64) >= 1.0 - DUPLICATE_THRESHOLD);
+    assert!((bad_leader_stake as f64 / total_stake as f64) >= 1.0 - *DUPLICATE_THRESHOLD);
 
     // Important that the partition node stake is the smallest so that it gets selected
     // for the partition.
@@ -3961,7 +3961,7 @@ fn test_switch_threshold_uses_gossip_votes() {
     let total_stake = 100 * DEFAULT_NODE_STAKE;
 
     // Minimum stake needed to generate a switching proof
-    let minimum_switch_stake = (SWITCH_FORK_THRESHOLD * total_stake as f64) as u64;
+    let minimum_switch_stake = (*SWITCH_FORK_THRESHOLD * total_stake as f64) as u64;
 
     // Make the heavier stake insufficient for switching so tha the lighter validator
     // cannot switch without seeing a vote from the dead/failure_stake validator.
@@ -5313,12 +5313,12 @@ fn test_duplicate_shreds_switch_failure() {
     // 2) One with <= SWITCHING_THRESHOLD so that validator from 1) can't switch to it
     // 3) One bad leader to make duplicate slots
     let total_stake = 100 * DEFAULT_NODE_STAKE;
-    let target_switch_fork_stake = (total_stake as f64 * SWITCH_FORK_THRESHOLD) as u64;
+    let target_switch_fork_stake = (total_stake as f64 * *SWITCH_FORK_THRESHOLD) as u64;
     // duplicate_fork_node1_stake + duplicate_fork_node2_stake > DUPLICATE_THRESHOLD. Don't want
     // one node with > DUPLICATE_THRESHOLD, otherwise they will automatically duplicate confirm a
     // slot when they vote, which will prevent them from resetting to an earlier ancestor when they
     // later discover that slot as duplicate.
-    let duplicate_fork_node1_stake = (total_stake as f64 * DUPLICATE_THRESHOLD) as u64;
+    let duplicate_fork_node1_stake = (total_stake as f64 * *DUPLICATE_THRESHOLD) as u64;
     let duplicate_fork_node2_stake = 1;
     let duplicate_leader_stake = total_stake
         - target_switch_fork_stake
@@ -5326,10 +5326,10 @@ fn test_duplicate_shreds_switch_failure() {
         - duplicate_fork_node2_stake;
     assert!(
         duplicate_fork_node1_stake + duplicate_fork_node2_stake
-            > (total_stake as f64 * DUPLICATE_THRESHOLD) as u64
+            > (total_stake as f64 * *DUPLICATE_THRESHOLD) as u64
     );
-    assert!(duplicate_fork_node1_stake <= (total_stake as f64 * DUPLICATE_THRESHOLD) as u64);
-    assert!(duplicate_fork_node2_stake <= (total_stake as f64 * DUPLICATE_THRESHOLD) as u64);
+    assert!(duplicate_fork_node1_stake <= (total_stake as f64 * *DUPLICATE_THRESHOLD) as u64);
+    assert!(duplicate_fork_node2_stake <= (total_stake as f64 * *DUPLICATE_THRESHOLD) as u64);
 
     let node_stakes = vec![
         duplicate_leader_stake,

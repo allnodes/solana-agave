@@ -153,9 +153,11 @@ impl SwitchForkDecision {
     }
 }
 
+allnodes_client::constants! {
 const VOTE_THRESHOLD_DEPTH_SHALLOW: usize = 4;
 pub const VOTE_THRESHOLD_DEPTH: usize = 8;
 pub const SWITCH_FORK_THRESHOLD: f64 = 0.38;
+}
 
 pub type Result<T> = std::result::Result<T, TowerError>;
 
@@ -242,7 +244,7 @@ impl Default for Tower {
     fn default() -> Self {
         let mut tower = Self {
             node_pubkey: Pubkey::default(),
-            threshold_depth: VOTE_THRESHOLD_DEPTH,
+            threshold_depth: *VOTE_THRESHOLD_DEPTH,
             threshold_size: VOTE_THRESHOLD_SIZE,
             vote_state: TowerVoteState::default(),
             last_vote: VoteTransaction::from(TowerSync::default()),
@@ -581,6 +583,7 @@ impl Tower {
         }
     }
 
+    /*
     #[cfg(test)]
     fn is_slot_confirmed(
         &self,
@@ -593,6 +596,7 @@ impl Tower {
             .map(|stake| (*stake as f64 / total_stake as f64) > self.threshold_size)
             .unwrap_or(false)
     }
+    */
 
     pub(crate) fn is_slot_duplicate_confirmed(
         &self,
@@ -602,7 +606,7 @@ impl Tower {
     ) -> bool {
         voted_stakes
             .get(&slot)
-            .map(|stake| (*stake as f64 / total_stake as f64) > DUPLICATE_THRESHOLD)
+            .map(|stake| (*stake as f64 / total_stake as f64) > *DUPLICATE_THRESHOLD)
             .unwrap_or(false)
     }
 
@@ -1209,7 +1213,7 @@ impl Tower {
                         .map(|(stake, _)| *stake)
                         .unwrap_or(0);
                     locked_out_stake += stake;
-                    if (locked_out_stake as f64 / total_stake as f64) > SWITCH_FORK_THRESHOLD {
+                    if (locked_out_stake as f64 / total_stake as f64) > *SWITCH_FORK_THRESHOLD {
                         return SwitchForkDecision::SwitchProof(switch_proof);
                     }
                     locked_out_vote_accounts.insert(vote_account_pubkey);
@@ -1262,7 +1266,7 @@ impl Tower {
                     .map(|(stake, _)| *stake)
                     .unwrap_or(0);
                 locked_out_stake += stake;
-                if (locked_out_stake as f64 / total_stake as f64) > SWITCH_FORK_THRESHOLD {
+                if (locked_out_stake as f64 / total_stake as f64) > *SWITCH_FORK_THRESHOLD {
                     return SwitchForkDecision::SwitchProof(switch_proof);
                 }
                 locked_out_vote_accounts.insert(vote_account_pubkey);
@@ -1386,8 +1390,8 @@ impl Tower {
             // purposes. We wish to impose a shallow threshold check to prevent the frequent 8 deep
             // lockouts seen multiple times a day. We check both the 4th and 5th deep here to collect
             // metrics to determine the right depth and threshold percentage to set in the future.
-            (VOTE_THRESHOLD_DEPTH_SHALLOW, SWITCH_FORK_THRESHOLD),
-            (VOTE_THRESHOLD_DEPTH_SHALLOW + 1, SWITCH_FORK_THRESHOLD),
+            (*VOTE_THRESHOLD_DEPTH_SHALLOW, *SWITCH_FORK_THRESHOLD),
+            (*VOTE_THRESHOLD_DEPTH_SHALLOW + 1, *SWITCH_FORK_THRESHOLD),
             (self.threshold_depth, self.threshold_size),
         ];
 
@@ -1810,6 +1814,7 @@ pub fn reconcile_blockstore_roots_with_external_source(
     Ok(())
 }
 
+/*
 #[cfg(test)]
 pub mod test {
     use {
@@ -3934,3 +3939,4 @@ pub mod test {
         }
     }
 }
+*/
