@@ -388,13 +388,16 @@ pub fn add_args<'a>(app: App<'a, 'a>, default_args: &'a DefaultArgs) -> App<'a, 
     .arg(
         Arg::with_name("no_snapshots")
             .long("no-snapshots")
-            .takes_value(false)
-            .conflicts_with_all(&[
-                "no_incremental_snapshots",
-                "snapshot_interval_slots",
-                "full_snapshot_interval_slots",
-            ])
-            .help("Disable all snapshot generation"),
+            .takes_value(true)
+            .default_value("true")
+            .validator(allnodes_solana::bool_validator)
+            .help(
+                "Disable all snapshot generation. Defaults to true, which means snapshots are \
+                 disabled by default. If --snapshot-interval-slots or \
+                 --full-snapshot-interval-slots are specified, this automatically becomes false \
+                 to enable snapshots. However, explicitly setting this to true while also \
+                 specifying snapshot intervals will cause a conflict error.",
+            ),
     )
     .arg(
         Arg::with_name("snapshot_interval_slots")

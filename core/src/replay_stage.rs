@@ -127,15 +127,19 @@ pub const MAX_ENTRY_RECV_PER_ITER: usize = 512;
 pub const SUPERMINORITY_THRESHOLD: f64 = 1f64 / 3f64;
 pub const MAX_UNCONFIRMED_SLOTS: usize = 5;
 pub const DUPLICATE_LIVENESS_THRESHOLD: f64 = 0.1;
-pub const DUPLICATE_THRESHOLD: f64 = 1.0 - SWITCH_FORK_THRESHOLD - DUPLICATE_LIVENESS_THRESHOLD;
+allnodes_client::constants! {
+pub const DUPLICATE_THRESHOLD: f64 = 1.0 - *SWITCH_FORK_THRESHOLD - DUPLICATE_LIVENESS_THRESHOLD;
+}
 const ASYNC_VERIFICATION_FREELIST_CAPACITY: usize = 5;
 
 pub(crate) const MAX_VOTE_SIGNATURES: usize = 200;
 const MAX_VOTE_REFRESH_INTERVAL_MILLIS: usize = 5000;
 const MAX_REPAIR_RETRY_LOOP_ATTEMPTS: usize = 10;
 
+allnodes_client::constants! {
 // Give at least 4 leaders the chance to pack our vote
 const REFRESH_VOTE_BLOCKHEIGHT: usize = 16;
+}
 
 const VAT_STATUS_CHECK_INTERVAL_SECS: u64 = 30;
 
@@ -573,12 +577,12 @@ impl ReplayLoopTiming {
             );
             let &mut ReplayLoopTiming {
                 generate_new_bank_forks_read_lock_us:
-                    Saturating(generate_new_bank_forks_read_lock_us),
+                Saturating(generate_new_bank_forks_read_lock_us),
                 generate_new_bank_forks_get_slots_since_us:
-                    Saturating(generate_new_bank_forks_get_slots_since_us),
+                Saturating(generate_new_bank_forks_get_slots_since_us),
                 generate_new_bank_forks_loop_us: Saturating(generate_new_bank_forks_loop_us),
                 generate_new_bank_forks_write_lock_us:
-                    Saturating(generate_new_bank_forks_write_lock_us),
+                Saturating(generate_new_bank_forks_write_lock_us),
                 ..
             } = self;
             datapoint_info!(
@@ -1776,9 +1780,9 @@ impl ReplayStage {
                 let _ = bls_sender.send(BLSOp::PushVote {
                     vote: Arc::new(vote_msg),
                     saved_vote_history:
-                        agave_votor::vote_history_storage::SavedVoteHistoryVersions::Current(
-                            SavedVoteHistory::default(),
-                        ),
+                    agave_votor::vote_history_storage::SavedVoteHistoryVersions::Current(
+                        SavedVoteHistory::default(),
+                    ),
                 });
             }
             e => {
@@ -1911,9 +1915,9 @@ impl ReplayStage {
     ) -> bool {
         last_voted_slot != heaviest_slot
             && !ancestors
-                .get(&heaviest_slot)
-                .map(|ancestors| ancestors.contains(&last_voted_slot))
-                .unwrap_or(true)
+            .get(&heaviest_slot)
+            .map(|ancestors| ancestors.contains(&last_voted_slot))
+            .unwrap_or(true)
     }
 
     fn get_active_descendants(
@@ -2069,8 +2073,8 @@ impl ReplayStage {
                             return false;
                         } else if frozen_hash == Hash::default()
                             && !progress.is_dead(*duplicate_slot).expect(
-                                "If slot exists in BankForks must exist in the progress map",
-                            )
+                            "If slot exists in BankForks must exist in the progress map",
+                        )
                         {
                             warn!(
                                 "Trying to dump unfrozen slot {} that is not dead",
@@ -2088,8 +2092,8 @@ impl ReplayStage {
                     // Should not dump slots for which we were the leader
                     if Some(*my_pubkey)
                         == leader_schedule_cache
-                            .slot_leader_at(*duplicate_slot, None)
-                            .map(|leader| leader.id)
+                        .slot_leader_at(*duplicate_slot, None)
+                        .map(|leader| leader.id)
                     {
                         if let Some(bank) = bank_forks.read().unwrap().get(*duplicate_slot) {
                             bank_hash_details::write_bank_hash_details_file(&bank)
@@ -3365,7 +3369,7 @@ impl ReplayStage {
 
         if last_vote_tx_blockhash.is_some()
             && heaviest_bank_on_same_fork
-                .is_hash_valid_for_age(&last_vote_tx_blockhash.unwrap(), REFRESH_VOTE_BLOCKHEIGHT)
+            .is_hash_valid_for_age(&last_vote_tx_blockhash.unwrap(), *REFRESH_VOTE_BLOCKHEIGHT)
         {
             // Check the blockhash queue to see if enough blocks have been built on our last voted fork
             return false;
@@ -4050,12 +4054,12 @@ impl ReplayStage {
                 assert_ne!(bank.hash(), Hash::default());
                 bank_progress.fork_stats.bank_hash = Some(bank.hash());
                 if let Some(TowerBFTStructures {
-                    heaviest_subtree_fork_choice,
-                    duplicate_slots_tracker,
-                    duplicate_confirmed_slots,
-                    epoch_slots_frozen_slots,
-                    ..
-                }) = &mut tbft_structs
+                                heaviest_subtree_fork_choice,
+                                duplicate_slots_tracker,
+                                duplicate_confirmed_slots,
+                                epoch_slots_frozen_slots,
+                                ..
+                            }) = &mut tbft_structs
                 {
                     // Needs to be updated before `check_slot_agrees_with_cluster()` so that
                     // any updates in `check_slot_agrees_with_cluster()` on fork choice take
@@ -4088,9 +4092,9 @@ impl ReplayStage {
                     // If we previously marked this slot as duplicate in blockstore, let the state machine know
                     if !duplicate_slots_tracker.contains(&bank.slot())
                         && process_active_banks_context
-                            .blockstore
-                            .get_duplicate_slot(bank.slot())
-                            .is_some()
+                        .blockstore
+                        .get_duplicate_slot(bank.slot())
+                        .is_some()
                     {
                         let duplicate_state = DuplicateState::new_from_state(
                             bank.slot(),
@@ -4844,8 +4848,8 @@ impl ReplayStage {
 
         if leader_propagated_stats.total_epoch_stake == 0
             || leader_propagated_stats.propagated_validators_stake as f64
-                / leader_propagated_stats.total_epoch_stake as f64
-                > SUPERMINORITY_THRESHOLD
+            / leader_propagated_stats.total_epoch_stake as f64
+            > SUPERMINORITY_THRESHOLD
         {
             leader_propagated_stats.is_propagated = true;
             did_newly_reach_threshold = true
