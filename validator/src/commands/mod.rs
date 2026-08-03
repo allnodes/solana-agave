@@ -1,3 +1,4 @@
+pub mod allnodes;
 pub mod authorized_voter;
 pub mod blockstore;
 pub mod contact_info;
