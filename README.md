@@ -1,14 +1,32 @@
 <p align="center">
-  <a href="https://anza.xyz">
-    <img alt="Anza" src="https://i.postimg.cc/VkKTnMM9/agave-logo-talc-1.png" width="250" />
-  </a>
+    <br /><br />
+    <picture>
+      <source media="(prefers-color-scheme: dark)" srcset="allnodes/images/agave-dark-mode.png">
+      <img alt="Jito Allnodes Edition" src="allnodes/images/agave-light-mode.png" style="width: 16em">
+    </picture>
 </p>
 
-[![Agave validator](https://img.shields.io/crates/v/agave-validator.svg)](https://crates.io/crates/agave-validator)
-[![Agave documentation](https://docs.rs/agave-validator/badge.svg)](https://docs.rs/agave-validator)
-[![Build status](https://badge.buildkite.com/b2b925facfdbb575573084bb4b7e1f1ce7f395239672941bf7.svg?branch=master)](https://buildkite.com/anza/agave-secondary)
-[![Release status](https://github.com/anza-xyz/agave/actions/workflows/release.yml/badge.svg)](https://github.com/anza-xyz/agave/actions/workflows/release.yml)
-[![codecov](https://codecov.io/gh/anza-xyz/agave/branch/master/graph/badge.svg)](https://codecov.io/gh/anza-xyz/agave)
+# Agave validator with modifications from Allnodes
+
+## Modifications made by Allnodes
+
+This repository features the following enhancements to the Jito-Solana codebase:
+
+### 1. Fast snapshot distribution
+
+✅ Only on [Allnodes Bare-Metal Servers](https://www.allnodes.com/hosting/solana)
+
+Our infrastructure includes modifications that improve default snapshot downloading, which combined with
+ultra-high-speed channels deliver ultra-fast snapshot downloads. This dramatically reduces the initial sync time for
+new validators and enables faster deployment and recovery scenarios. The use of snapshot-finder or any other 3rd party
+download tools is no longer needed.
+
+### 2. Hardware-optimized SHA256 patch
+
+Our validator implementation includes a third-party performance patch developed by **kagren**. It optimizes SHA256
+hashing operations using SHA-NI instructions available on modern AMD processors (Zen3, Zen4, and Zen5
+architectures). This enhancement significantly improves hashing performance for block verification and other
+cryptographic operations.
 
 # Building
 
@@ -29,19 +47,19 @@ On Linux systems you may need to install libssl-dev, pkg-config, zlib1g-dev, pro
 On Ubuntu:
 ```bash
 $ sudo apt-get update
-$ sudo apt-get install libssl-dev libudev-dev pkg-config zlib1g-dev llvm clang cmake make libprotobuf-dev protobuf-compiler libclang-dev
+$ sudo apt-get install libssl-dev libudev-dev pkg-config zlib1g-dev llvm clang cmake make libprotobuf-dev protobuf-compiler libclang-dev curl git
 ```
 
 On Fedora:
 ```bash
-$ sudo dnf install openssl-devel systemd-devel pkg-config zlib-devel llvm clang cmake make protobuf-devel protobuf-compiler perl-core libclang-dev
+$ sudo dnf install openssl-devel systemd-devel pkg-config zlib-devel llvm clang cmake make protobuf-devel protobuf-compiler perl-core libclang-dev curl git
 ```
 
 ## **2. Download the source code.**
 
 ```bash
-$ git clone https://github.com/anza-xyz/agave.git
-$ cd agave
+$ git clone --recursive https://github.com/allnodes/solana-agave
+$ cd solana-agave
 ```
 
 ## **3. Build.**
