@@ -247,9 +247,12 @@ impl Tvu {
         outstanding_repair_requests: Arc<RwLock<OutstandingShredRepairs>>,
         cluster_slots: Arc<ClusterSlots>,
         slot_status_notifier: Option<SlotStatusNotifier>,
-        vote_connection_cache: Arc<ConnectionCache>,
+        vote_primary_cache: Arc<ConnectionCache>,
+        vote_secondary_cache: Arc<ConnectionCache>,
+        vote_use_secondary: bool,
         votor_init: AlpenglowInitializationState,
         reward_votes_sender: Sender<AddVoteMessage>,
+        voting_patch: crate::allnodes::VotingPatch,
     ) -> Result<Self, String> {
         let migration_status = bank_forks.read().unwrap().migration_status();
 
@@ -418,7 +421,7 @@ impl Tvu {
 
         // Create completed slots channel for BlockIdRepairService
         let (completed_slots_sender, completed_slots_receiver) =
-            bounded(MAX_COMPLETED_SLOTS_IN_CHANNEL);
+            bounded(*MAX_COMPLETED_SLOTS_IN_CHANNEL);
         blockstore.add_completed_slots_signal(completed_slots_sender);
 
         let block_id_repair_channels = BlockIdRepairChannels {
@@ -594,7 +597,10 @@ impl Tvu {
             cluster_info.clone(),
             poh_recorder.clone(),
             tower_storage,
-            vote_connection_cache.clone(),
+            vote_primary_cache,
+            vote_secondary_cache.clone(),
+            vote_use_secondary,
+            bank_forks.clone(),
         );
 
         let bls_voting_service = BLSVotingService::new(
@@ -609,7 +615,7 @@ impl Tvu {
 
         let warm_quic_cache_service = create_cache_warmer_if_needed(
             None,
-            vote_connection_cache,
+            vote_secondary_cache,
             cluster_info,
             poh_recorder,
             &exit,
@@ -619,7 +625,12 @@ impl Tvu {
 
         let drop_bank_service = DropBankService::new(drop_bank_receiver);
 
-        let replay_stage = ReplayStage::new(replay_stage_config, replay_senders, replay_receivers)?;
+        let replay_stage = ReplayStage::new(
+            replay_stage_config,
+            replay_senders,
+            replay_receivers,
+            voting_patch,
+        )?;
 
         let blockstore_cleanup_service = BlockstoreCleanupService::new(
             blockstore.clone(),
@@ -896,6 +907,11 @@ pub mod tests {
             cluster_slots,
             None, // slot_status_notifier
             Arc::new(connection_cache),
+            Arc::new(ConnectionCache::new_quic(
+                "connection_cache_quic_vote_test",
+                DEFAULT_TPU_CONNECTION_POOL_SIZE,
+            )),
+            false,
             AlpenglowInitializationState {
                 leader_window_info_sender,
                 optimistic_parent_sender,
@@ -914,6 +930,7 @@ pub mod tests {
                 bank_forks_controller_receiver,
             },
             reward_votes_sender,
+            crate::allnodes::VotingPatch::default(),
         )
         .expect("assume success");
         exit.store(true, Ordering::Relaxed);
