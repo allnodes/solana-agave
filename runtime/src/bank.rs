@@ -3508,6 +3508,10 @@ impl Bank {
         self.blockhash_queue.read().unwrap().last_hash()
     }
 
+    pub fn recent_blockhashes_n(&self, n: usize) -> Vec<Hash> {
+        self.blockhash_queue.read().unwrap().recent_hashes_n(n)
+    }
+
     pub fn last_blockhash_and_lamports_per_signature(&self) -> (Hash, u64) {
         let blockhash_queue = self.blockhash_queue.read().unwrap();
         let last_hash = blockhash_queue.last_hash();
@@ -5386,12 +5390,23 @@ impl Bank {
         filter: F,
         byte_limit_for_scan: Option<usize>,
     ) -> ScanResult<Vec<KeyedAccountSharedData>> {
+        self.get_filtered_indexed_accounts_with_abort(index_key, filter, byte_limit_for_scan, None)
+    }
+
+    pub fn get_filtered_indexed_accounts_with_abort<F: Fn(&AccountSharedData) -> bool>(
+        &self,
+        index_key: &IndexKey,
+        filter: F,
+        byte_limit_for_scan: Option<usize>,
+        abort: Option<Arc<AtomicBool>>,
+    ) -> ScanResult<Vec<KeyedAccountSharedData>> {
         self.rc.accounts.load_by_index_key_with_filter(
             &self.ancestors,
             self.bank_id,
             index_key,
             filter,
             byte_limit_for_scan,
+            abort,
         )
     }
 

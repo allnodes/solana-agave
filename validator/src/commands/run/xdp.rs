@@ -25,6 +25,10 @@ pub(super) fn build_xdp_transmit_setup(
     mut xdp_config: XdpConfig,
     bind_addresses: &BindIpAddrs,
     exit: Arc<AtomicBool>,
+    node: &solana_gossip::node::Node,
+    xdp_receive_mode: super::xdp_receive::ReceiveMode,
+    xdp_chain_loading: bool,
+    xdp_queue_base: Option<u32>,
 ) -> (XdpTransmitSetup, XdpNetworkConfigReport) {
     let device = if let Some(interface) = xdp_config.interface.as_ref() {
         NetworkDevice::new(interface).expect("configured interface should exist")
@@ -43,6 +47,50 @@ pub(super) fn build_xdp_transmit_setup(
             .expect("selected interface should exist and have an IPv4 address assigned"),
         _ => panic!("IPv6 not supported"),
     };
+    let reported_mode = match xdp_receive_mode {
+        super::xdp_receive::ReceiveMode::Exclusive => {
+            solana_core::system_monitor_service::XdpReceiveState::Exclusive
+        }
+        super::xdp_receive::ReceiveMode::Chained => {
+            solana_core::system_monitor_service::XdpReceiveState::Chained
+        }
+        super::xdp_receive::ReceiveMode::Adopted(_) => {
+            solana_core::system_monitor_service::XdpReceiveState::Adopted
+        }
+        super::xdp_receive::ReceiveMode::Off { .. } | super::xdp_receive::ReceiveMode::Fatal(_) => {
+            solana_core::system_monitor_service::XdpReceiveState::Off
+        }
+    };
+    let mut accelerated = Vec::new();
+    if xdp_receive_mode.is_full() {
+        let receive = super::xdp_receive::configure(
+            &xdp_interface,
+            node,
+            xdp_receive_mode,
+            zero_copy,
+            xdp_chain_loading,
+            xdp_config.queues.len(),
+            xdp_queue_base,
+            exit.clone(),
+        );
+        xdp_config.manage_program = false;
+        xdp_config.tx_queue_base = u64::from(receive.tx_base);
+        accelerated = receive.accelerated;
+    } else {
+        super::xdp_receive::clear_leftover_steering(&xdp_interface, node);
+        xdp_config.tx_queue_base = u64::from(
+            super::xdp_receive::transmit_queue_base(
+                &xdp_interface,
+                xdp_queue_base,
+                xdp_config.queues.len(),
+            )
+            .unwrap_or_else(|err| {
+                log::error!("{err}");
+                std::process::exit(1);
+            }),
+        );
+    }
+
     // Nothing can express per-component queue assignments yet, so every
     // component transmits over the whole queue set.
     let all_positions: Box<[usize]> = (0..xdp_config.queues.len()).collect();
@@ -62,6 +110,8 @@ pub(super) fn build_xdp_transmit_setup(
         XdpNetworkConfigReport {
             zero_copy,
             interface: xdp_interface,
+            receive: reported_mode,
+            accelerated,
         },
     )
 }
@@ -128,6 +178,14 @@ pub(super) fn build_xdp_config(
             }
         }
     };
+    let cpus = cpus.map(|cpus| {
+        super::xdp_receive::transmit_cores(
+            cpus,
+            xdp_interface,
+            xdp_cpu_cores.is_some(),
+            poh_pinned_cpu_core,
+        )
+    });
     Ok(cpus.map(|cpus| {
         info!("XDP enabled on CPU cores: {cpus:?}");
         // Map the CPU list onto hardware queues sequentially (queue i -> cpus[i]).
