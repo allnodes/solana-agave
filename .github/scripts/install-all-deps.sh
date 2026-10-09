@@ -31,7 +31,7 @@ case "$os_name" in
       perl
   else
     sudo apt update
-    sudo apt install -y libclang-dev
+    sudo apt install -y libclang-dev pkg-config libudev-dev protobuf-compiler
   fi
   ;;
 *)
