@@ -8,6 +8,7 @@
 //! command-line tools to spin up validators and a Rust library
 //!
 
+pub mod allnodes;
 pub mod admin_rpc_post_init;
 pub mod banking_simulation;
 pub mod banking_stage;
