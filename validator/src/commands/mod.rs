@@ -7,6 +7,7 @@ pub mod monitor;
 pub mod plugin;
 pub mod repair_shred_from_peer;
 pub mod repair_whitelist;
+pub mod reset_xdp_interface;
 pub mod run;
 pub mod set_identity;
 pub mod set_log_filter;
